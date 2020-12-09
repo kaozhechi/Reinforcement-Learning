@@ -5,16 +5,36 @@ import torch.optim as optim
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 # Hyper Parameters
 BATCH_SIZE = 32    # 批处理时的样本数量
 LR = 0.01          # 学习率，步长
 GAMMA = 0.9        # 折扣
-EPSILON = 0.9      # 伊普西隆-greedy
+EPSILON_START = 1.0
+EPSILON_FINAL = 0
+EPSILON_DECAY = 500
 MEMORY_CAPACITY = 2000  # 经验池的大小
 TARGET_REPLACE_ITEM = 100  # 建立了单独的目标网络 来处理TD误差 来解决训练的不稳定性
 env = gym.make('CartPole-v0').unwrapped
 N_STATES = env.observation_space.shape[0]
 N_ACTIONS = env.action_space.n
+
+
+def adjust_epsilon(learn_counter):
+    epsilon = EPSILON_FINAL + (EPSILON_START - EPSILON_FINAL) * math.exp(-1 * learn_counter / EPSILON_DECAY)
+    return epsilon
+
+
+def all_plot(learn_counter, rewards, losses):
+    plt.figure(figsize=(20, 5))
+    plt.subplot(131)
+    plt.title('frame %s. reward: %s' % (learn_counter, np.mean(rewards[-10:])))
+    plt.plot(rewards)
+    plt.subplot(132)
+    plt.title("loss")
+    plt.plot(losses)
+    plt.savefig('D3_DQN.PNG')
+    plt.show()
 
 
 # 定义neural network 框架
@@ -43,9 +63,9 @@ class DDQN(object):
         self.optimizer = optim.Adam(self.predict_net.parameters(), lr=LR)
         self.loss_func = nn.MSELoss()
 
-    def choose_action(self, state):
+    def choose_action(self, state, learn_counter):
         state = torch.Tensor(state).unsqueeze(0)
-        if np.random.uniform() < EPSILON:
+        if np.random.uniform() > adjust_epsilon(learn_counter):
             actions_value = self.predict_net.forward(state)
             # action = torch.argmax(actions_value, dim=1).data.numpy()
             action = torch.max(actions_value, 1)[1].data.numpy()
@@ -83,14 +103,18 @@ class DDQN(object):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        return loss.item()
+
 
 ddqn = DDQN()
-for i_episode in range(400):
+all_awards = []
+all_losses = []
+for i_episode in range(10000):
     s = env.reset()
     ep_r = 0
     while True:
         # env.render()
-        a = ddqn.choose_action(s)
+        a = ddqn.choose_action(s, ddqn.learn_counter)
         s_, r, done, _ = env.step(a)
 
 
@@ -102,13 +126,17 @@ for i_episode in range(400):
         ddqn.store_transition(s, a, r, s_)
         ep_r += r
         if ddqn.memory_counter > MEMORY_CAPACITY:
-            ddqn.learn()
+            all_losses.append(ddqn.learn())
             if done:
                 print('Ep: ', i_episode,  # 输出该episode数
                       '| Ep_r: ', round(ep_r, 2))  # round()方法返回ep_r的小数点四舍五入到2个数字
 
         if done:  # 如果满足终止条件
+            all_awards.append(ep_r)
             break  # 该episode结束
+
+        if ddqn.learn_counter % 10000 == 0 and ddqn.learn_counter != 0:
+            all_plot(ddqn.learn_counter, all_awards, all_losses)
         s = s_
 
 

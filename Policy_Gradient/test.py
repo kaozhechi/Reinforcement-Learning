@@ -1,6 +1,6 @@
 import torch
 import gym
-from train import Net
+from reinforce import Net
 from torch.distributions import Categorical
 
 model = Net()
