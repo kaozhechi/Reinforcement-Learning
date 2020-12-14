@@ -117,10 +117,14 @@ class ActorCritic(object):
                 if done:
                     all_rewards.append(ep_reward)
                     break
-                if learn_step % 10000 == 0 and learn_step != 0:
+                if learn_step % 1000000 == 0 and learn_step != 0:
                     plot_all(all_rewards, all_loss)
                 s = s_
+                if sum(all_rewards[-10:]) >= 500:
+                    print("ok")
+                    torch.save(self.actor_net.state_dict(), 'actor.pt')
 
 
-agent = ActorCritic()
-agent.env_train(400)
+if __name__ == '__main__':
+    agent = ActorCritic()
+    agent.env_train(400)

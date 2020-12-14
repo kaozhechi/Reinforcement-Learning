@@ -1,6 +1,6 @@
 import torch
 import gym
-from reinforce import Net
+from Reinforce_train import Net
 from torch.distributions import Categorical
 
 model = Net()
@@ -32,6 +32,3 @@ for i_episode in range(2):
 env.close()
 print(t_all)
 print(sum(t_all)/len(t_all))
-
-
-
