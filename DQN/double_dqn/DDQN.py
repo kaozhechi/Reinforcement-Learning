@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import math
 # Hyper Parameters
 BATCH_SIZE = 32    # 批处理时的样本数量
-LR = 0.01          # 学习率，步长
-GAMMA = 0.9        # 折扣
+LR = 1e-2       # 学习率，步长
+GAMMA = 0.99        # 折扣
 EPSILON_START = 1.0
 EPSILON_FINAL = 0
 EPSILON_DECAY = 500
@@ -109,6 +109,7 @@ class DDQN(object):
 ddqn = DDQN()
 all_awards = []
 all_losses = []
+all_epsilons = []
 for i_episode in range(10000):
     s = env.reset()
     ep_r = 0
@@ -122,14 +123,14 @@ for i_episode in range(10000):
         r1 = (env.x_threshold - abs(x)) / env.x_threshold - 0.8
         r2 = (env.theta_threshold_radians - abs(theta)) / env.theta_threshold_radians - 0.5
         r = r1 + r2
-
+        all_epsilons.append(adjust_epsilon(ddqn.learn_counter))
         ddqn.store_transition(s, a, r, s_)
         ep_r += r
         if ddqn.memory_counter > MEMORY_CAPACITY:
             all_losses.append(ddqn.learn())
             if done:
                 print('Ep: ', i_episode,  # 输出该episode数
-                      '| Ep_r: ', round(ep_r, 2))  # round()方法返回ep_r的小数点四舍五入到2个数字
+                      '| Ep_r: ', round(ep_r, 2), "| Epsilon: ", all_epsilons[ddqn.learn_counter])  # round()方法返回ep_r的小数点四舍五入到2个数字
 
         if done:  # 如果满足终止条件
             all_awards.append(ep_r)

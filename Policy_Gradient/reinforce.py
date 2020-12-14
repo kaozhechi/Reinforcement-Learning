@@ -26,7 +26,7 @@ class Net(nn.Module):
         self.dropout = nn.Dropout(p=0.6)
         self.out = nn.Linear(128, N_ACTION)
 
-    def forward(self,state):
+    def forward(self, state):
         state = self.fc1(state)
         state = self.dropout(state)
         state = F.relu(state)
